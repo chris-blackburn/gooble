@@ -1,17 +1,6 @@
-#!/usr/bin/env python3
-
 import uuid
 
-class Player:
-    def __init__(self, name, starting=50):
-        self.name = name
-        self.amount = starting
-
-    def grant(self, monies):
-        self.amount += monies
-
-    def take(self, monies):
-        self.amount -= monies
+from .player import Player
 
 class BetException(Exception):
     pass
@@ -33,7 +22,7 @@ class Bet:
             _, amount_bet = record
             player.grant(amount_bet)
 
-        if player.amount < amount:
+        if player.balance < amount:
             raise BetException("Get mo money")
 
         player.take(amount)
