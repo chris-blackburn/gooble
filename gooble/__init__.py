@@ -65,9 +65,6 @@ async def stat(ctx, args):
 @parser(description="End a gamble")
 @option("result", choices=["yes", "no"], help="The result of the bet")
 async def payout(ctx, args):
-    """
-    End a gambling session
-    """
     self = ctx.bot
 
     bet = self.running_bet
@@ -96,13 +93,12 @@ async def payout(ctx, args):
     await ctx.send(embed=embed)
 
 @commands.command()
-@parser(description="End a gamble")
+@parser(description="Place a bet")
 @option("amount", type=int, help="The amount you want to bet")
 @option("gamble", choices=["yes", "no"], help="Expected outcome")
+@option("--bet", "-b",
+        help="ID of the bet to place (defaults to most recent bet)")
 async def place(ctx, args):
-    """
-    Place a bet on a session
-    """
     self = ctx.bot
 
     player = self.getPlayer(ctx.author)
@@ -113,7 +109,7 @@ async def place(ctx, args):
         return
 
     try:
-        bet.addPlayer(player, args.amount, args.gamble)
+        bet.addPlayer(player, args.amount, args.gamble == "yes")
     except BetException as e:
         await ctx.send(e)
         return

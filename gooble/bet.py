@@ -13,7 +13,7 @@ class Bet:
         self.yay = {}
         self.nay = {}
 
-    def addPlayer(self, player, amount, result):
+    def addPlayer(self, player, amount, isyay):
 
         # Avoid duplication
         record = self.yay.pop(player.name, None)
@@ -23,16 +23,17 @@ class Bet:
             player.grant(amount_bet)
 
         if player.balance < amount:
+            # TODO: put player back in original bet
             raise BetException("Get mo money")
 
         player.take(amount)
-        if result == "Y":
+        if isyay:
             self.yay[player.name] = (player, amount)
             return
 
         self.nay[player.name] = (player, amount)
 
-    def end(self, result):
+    def end(self, isyay):
         deltas = []
 
         winners = self.yay if result else self.nay
