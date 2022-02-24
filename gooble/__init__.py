@@ -147,7 +147,7 @@ class Gooble(commands.Bot):
         key = author.id
         player = self.players.get(key, None)
         if player is None:
-            player = Player(author.name)
+            player = Player(author.nick)
             self.players[key] = player
 
         return player
