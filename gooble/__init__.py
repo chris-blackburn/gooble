@@ -7,11 +7,26 @@ from discord.ext import commands
 
 from .player import Player
 from .bet import Bet, BetException
+from .house import House
 from .util import parser, option
 from .util import DEFAULT_PREFIX, DEFAULT_COLOR
 
 from .logs import getLogger
 logger = getLogger()
+
+# 1. Each guild is considered to be a house (or game)
+#   - Houses can be reset (all bets and monies are cleared)
+#     * We can also add some base payout so people who hit zero aren't dead in
+#       the water
+#   - Players are provided a balance the first time they place a bet (or request
+#     a summary of their funds)
+#     * Maybe we can use a decorator on all functions to do this?
+# 2. In a house, players can start new bets and place their wagers
+#   - A bet will have a win criteria
+#   - All bets are zero-sum (the total loses equal total winnings)
+#   - Players can place stakes and wagers on a bet (the amount they are gambling
+#     on a particular outcome)
+# 3. Payouts close bets and distribute the winnings
 
 @commands.command()
 async def bonk(ctx):
@@ -19,16 +34,22 @@ async def bonk(ctx):
 
 @commands.command()
 @parser(description="Start a new bet")
-@option("statement", help="A statement of a yes/no bet")
+@option("statement", help="What the bet is on")
+@option("type", choices=Bet.choices(), help="The game type")
 async def bet(ctx, args):
     self = ctx.bot
 
-    bet = Bet(stmt=args.statement)
-    self.addBet(bet)
+    house = self.getHouse(ctx.guild)
+
+    try:
+        bet = house.newBet(args.type, args.statement)
+    except BetException as e:
+        await ctx.send(e)
+        return
 
     embed = discord.Embed(
-            title="New bet",
-            description=args.statement,
+            title=bet.GAME_TYPE.name,
+            description=bet.statement,
             color=DEFAULT_COLOR
     )
 
@@ -87,7 +108,7 @@ async def payout(ctx, args):
     embed.add_field(name="id", value=str(bet.id))
 
     value = "\n".join(
-        ["{0}, {1:+} ({2})".format(p.name, d, p.amount) for p, d in deltas])
+        ["{0}, {1:+} ({2})".format(p.name, d, p.balance) for p, d in deltas])
     embed.add_field(name="results", value=value, inline=False)
 
     await ctx.send(embed=embed)
@@ -128,26 +149,14 @@ class Gooble(commands.Bot):
 
         self.add_command(bonk)
         self.add_command(bet)
-        self.add_command(stat)
-        self.add_command(payout)
-        self.add_command(place)
 
-        # TODO: Make lists of players and bets unique per server
-        # TODO: Handle multiple bets, but also track the running bet
-        self.players = {}
-        self.running_bet = None
+        self.houses = {}
 
-    def addBet(self, bet):
-        self.running_bet = bet
+    def getHouse(self, guild):
+        house = self.houses.get(guild.id, None)
+        if house is None:
+            house = House(guild.id)
+            self.houses[guild.id] = house
 
-    def removeBet(self, bet):
-        self.running_bet = None
+        return house
 
-    def getPlayer(self, author):
-        key = author.id
-        player = self.players.get(key, None)
-        if player is None:
-            player = Player(author.nick)
-            self.players[key] = player
-
-        return player

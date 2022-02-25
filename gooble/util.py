@@ -50,3 +50,13 @@ def option(*args, **kwargs):
         _args.insert(0, (args, kwargs))
         return function
     return decorator
+
+def partition(pred, iterable):
+    trues = []
+    falses = []
+    for item in iterable:
+        if pred(item):
+            trues.append(item)
+        else:
+            falses.append(item)
+    return trues, falses
