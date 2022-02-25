@@ -14,19 +14,11 @@ class House:
         self.bets = {}
 
     def getPlayer(self, author):
-        """
-        Player factory
-        """
-        key = author.id
-        player = self.players.get(key, None)
-        if player is None:
-            player = Player(key, author.nick)
-            self.players[key] = player
+        return self.players.setdefault(author.id,
+                Player(author.id, author.nick))
 
-        return player
-
-    def newBet(self, gtnick, statement):
-        bet = Bet.newBet(gtnick, statement)
+    def newBet(self, betcls, statement):
+        bet = betcls(statement)
 
         self.bets[bet.id] = bet
         return bet

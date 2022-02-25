@@ -19,5 +19,5 @@ init: env
 .PHONY: init
 
 clean:
-	rm -rf ./**/__pycache__ ./**/*.pyc
+	rm -rf ./**/__pycache__ ./**/*.pyc *.db
 .PHONY: compile

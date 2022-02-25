@@ -32,10 +32,25 @@ logger = getLogger()
 async def bonk(ctx):
     await ctx.send("Go to horny jail")
 
+# Convert a nickname to a subclass we can instantiate later
+class ActionGameType(argparse.Action):
+    def __call__(self, parser, namespace, gtnick, option_string=None):
+        cls = Bet.byNickname(gtnick)
+        if not cls:
+            raise ValueError(
+                    "Invalid game type specified '{}'".format(self.dest))
+
+        setattr(namespace, self.dest, cls)
+
+class ActionStatement(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, " ".join(values))
+
 @commands.command()
 @parser(description="Start a new bet")
-@option("statement", help="What the bet is on")
-@option("type", choices=Bet.choices(), help="The game type")
+@option("type", choices=Bet.choices(), action=ActionGameType)
+@option("statement", nargs="+", action=ActionStatement,
+        help="What the bet is on")
 async def bet(ctx, args):
     self = ctx.bot
 
@@ -48,13 +63,41 @@ async def bet(ctx, args):
         return
 
     embed = discord.Embed(
-            title=bet.GAME_TYPE.name,
+            title=bet.FRIENDLY_NAME,
             description=bet.statement,
             color=DEFAULT_COLOR
     )
 
     embed.add_field(name="id", value=str(bet.id))
     await ctx.send(embed=embed)
+
+@commands.command()
+@parser(description="Place a bet")
+@option("stake", type=int, help="The amount you want to bet")
+@option("wager", help="The outcome you expect")
+@option("--bet", "-b",
+        help="ID of the bet to place (defaults to most recent bet)")
+async def place(ctx, args):
+    self = ctx.bot
+
+    player = self.getPlayer(ctx.author)
+
+    # TODO: get the relevant bet (if there is one)
+    # TODO: add the player to the bet
+
+    bet = self.running_bet
+    if not bet:
+        await ctx.send("No running bet")
+        return
+
+    try:
+        bet.addPlayer(player, args.amount, args.gamble == "yes")
+    except BetException as e:
+        await ctx.send(e)
+        return
+
+    # TODO: send random discouraging messages
+    await ctx.send("Are you sure you want to do that?")
 
 @commands.command()
 @parser(description="List balances of all registered players")
@@ -113,32 +156,9 @@ async def payout(ctx, args):
 
     await ctx.send(embed=embed)
 
-@commands.command()
-@parser(description="Place a bet")
-@option("amount", type=int, help="The amount you want to bet")
-@option("gamble", choices=["yes", "no"], help="Expected outcome")
-@option("--bet", "-b",
-        help="ID of the bet to place (defaults to most recent bet)")
-async def place(ctx, args):
-    self = ctx.bot
-
-    player = self.getPlayer(ctx.author)
-
-    bet = self.running_bet
-    if not bet:
-        await ctx.send("No running bet")
-        return
-
-    try:
-        bet.addPlayer(player, args.amount, args.gamble == "yes")
-    except BetException as e:
-        await ctx.send(e)
-        return
-
-    # TODO: send random discouraging messages
-    await ctx.send("Are you sure you want to do that?")
-
 class Gooble(commands.Bot):
+    DB_NAME = "gooble.db"
+
     def __init__(self, *args, **kwargs):
 
         intents = discord.Intents.default()
@@ -150,13 +170,15 @@ class Gooble(commands.Bot):
         self.add_command(bonk)
         self.add_command(bet)
 
-        self.houses = {}
+        with shelve.open(self.DB_NAME) as db:
+            self.houses = db.get("houses", {})
+
+    async def close(self, *args, **kwargs):
+        await super().close(*args, **kwargs)
+
+        with shelve.open(self.DB_NAME) as db:
+            db["houses"] = self.houses
 
     def getHouse(self, guild):
-        house = self.houses.get(guild.id, None)
-        if house is None:
-            house = House(guild.id)
-            self.houses[guild.id] = house
-
-        return house
+        return self.houses.setdefault(guild.id, House(guild.id))
 

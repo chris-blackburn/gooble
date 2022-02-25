@@ -13,9 +13,10 @@ class GameTypes(Enum):
     CLOSEST_WINS    = auto()
 
 _BETS_BY_TYPE = {}
-def bind_game(gt: GameTypes, *nicks):
+def bind_game(name, gt: GameTypes, *nicks):
     def decorator(cls):
         setattr(cls, "GAME_TYPE", gt)
+        setattr(cls, "FRIENDLY_NAME", name)
 
         _BETS_BY_TYPE[gt.value] = (cls, nicks)
         return cls
@@ -39,10 +40,15 @@ class Bet:
         self.locked = False
 
     def addPlayer(self, player, wager, stake):
-        pass
+        raise BetException("Not implemented")
 
-    def next(self, information):
-        pass
+    def end(self, result):
+        raise BetException("Not implemented")
+
+    @staticmethod
+    def sortDeltas(deltas):
+        # Sort by winnings
+        deltas.sort(lambda delta: delta[1])
 
     @staticmethod
     def choices():
@@ -52,32 +58,30 @@ class Bet:
         logger.debug(choices)
         return choices
 
-    @classmethod
-    def newBet(cls, gtnick, *args, **kwargs):
+    @staticmethod
+    def byNickname(gtnick):
         logger.debug("Finding sublcass for {}".format(gtnick))
 
-        subcls = None
-        for _subcls, nicks in _BETS_BY_TYPE.values():
-            if gtnick in nicks:
-                subcls = _subcls
-                break
+        for subcls, nicks in _BETS_BY_TYPE.values():
+            if gtnick.lower() in [n.lower() for n in nicks]:
+                logger.debug("Found!")
+                return subcls
 
-        if subcls is None:
-            raise BetException("Invalid game type specified '{}'".format(gtnick))
-        return subcls(*args, **kwargs)
+        return None
 
 class BinaryBet(Bet):
     TRUTHY_KEYWORDS = []
     FALSEY_KEYWORDS = []
 
     @staticmethod
-    def _cast_keyword(_kw):
+    def _cast_keyword(_kw: str) -> bool:
         kw = _kw.lower()
         VALID_KEYWORDS = TRUTHY_KEYWORDS + FALSEY_KEYWORDS
 
         if kw not in VALID_KEYWORDS:
-            raise BetException("'{}' is not a valid keyword for {}".format(
-                _kw, self.__class__.__name__))
+            raise BetException(
+                    "'{}' is not a valid wager for {}; try {}".format(
+                        _kw, self.FRIENDLY_NAME, VALID_KEYWORDS))
 
         return kw in TRUTHY_KEYWORDS
 
@@ -88,7 +92,6 @@ class BinaryBet(Bet):
         self.falsey = {}
 
     def addPlayer(self, player, stake, wager):
-        super().addPlayer()
         wager = self._cast_keyword(wager)
         self._addPlayer(player, stake, wager)
 
@@ -112,7 +115,6 @@ class BinaryBet(Bet):
         pool[player.name] = (player, stake)
 
     def end(self, result):
-        super().end()
         result = self._cast_keyword(result)
         return self._end(result)
 
@@ -137,27 +139,40 @@ class BinaryBet(Bet):
 
             deltas.append((player, winnings))
 
-        # TODO: shuffle order
+        self.sortDeltas(deltas)
         return deltas
 
-@bind_game(GameTypes.OVER_UNDER, "OU", "overunder")
+@bind_game("Over/Under", GameTypes.OVER_UNDER, "ou", "overunder")
 class OverUnderBet(BinaryBet):
     TRUTHY_KEYWORDS = ["o", "over"]
     FALSEY_KEYWORDS = ["u", "under"]
 
-@bind_game(GameTypes.WIN_LOSE, "WL", "winlose")
+@bind_game("Win/Lose", GameTypes.WIN_LOSE, "wl", "winlose")
 class WinLoseBet(BinaryBet):
     TRUTHY_KEYWORDS = ["w", "win"]
     FALSEY_KEYWORDS = ["l", "lose"]
 
-@bind_game(GameTypes.CLOSEST_WINS, "CW", "closestwins")
+@bind_game("Closest Wins", GameTypes.CLOSEST_WINS, "cw", "closestwins")
 class ClosestWinsBet(Bet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.betters = {}
 
-    def addPlayer(self, player, stake, wager: int):
+    @staticmethod
+    def _validate_input(value: str) -> int:
+        try:
+            return int(value)
+        except ValueError:
+            raise BetException(
+                    "'{}' is not a valid wager for {}; use an integer".format(
+                        value, self.FRIENDLY_NAME))
+
+    def addPlayer(self, player, stake, wager: str):
+        wager = self._validate_input(wager)
+        return self._addPlayer(player, stake, wager)
+
+    def _addPlayer(self, player, stake, wager: int):
         record = self.betters.pop(player.name, None)
         if record is not None:
             _, original_stake, *_ = record
@@ -169,7 +184,11 @@ class ClosestWinsBet(Bet):
         player.take(stake)
         self.betters[player.name] = (player, stake, target)
 
-    def end(self, result: int):
+    def end(self, result: str):
+        result = self._validate_input(result)
+        return self._end(result)
+
+    def _end(self, result: int):
         deltas = []
 
         # map betters to a list of offsets from result
@@ -195,6 +214,6 @@ class ClosestWinsBet(Bet):
             player.grant(winnings)
             deltas.append((player, winnings))
 
-        # TODO: shuffle order
+        self.sortDeltas(deltas)
         return deltas
 
