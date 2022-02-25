@@ -1,5 +1,6 @@
 # Gooble
 
-A betting bot for the bois
+A discord betting bot for the bois
 
-`python3 -m "gooble"`
+`pip install -r requirements.txt`
+`make run`
