@@ -15,10 +15,14 @@ class GameTypes(Enum):
     YES_NO          = auto()
 
 _BETS_BY_TYPE = {}
-def bind_game(name, gt: GameTypes, *nicks):
+def bind_game(name, gt: GameTypes, *nicks, description=''):
     def decorator(cls):
         setattr(cls, "GAME_TYPE", gt)
         setattr(cls, "FRIENDLY_NAME", name)
+
+        full_desc = description + "\nThis game can be created using name(s): "
+        full_desc += ", ".join([ "`{}`".format(nick) for nick in nicks ])
+        setattr(cls, "FRIENDLY_DESCRIPTION", full_desc)
 
         _BETS_BY_TYPE[gt.value] = (cls, nicks)
         return cls
@@ -158,22 +162,39 @@ class BinaryBet(Bet):
 
         return placed_stakes
 
-@bind_game("Over/Under", GameTypes.OVER_UNDER, "ou", "overunder")
+@bind_game("Over/Under", GameTypes.OVER_UNDER, "ou", "overunder",
+    description="""A binary style bet where players wager whether or 
+    not some metric will be greater than or less than a fixed value.
+    Payouts are based on the proportion of the player's stake to the 
+    winning pool.""")
 class OverUnderBet(BinaryBet):
     TRUTHY_KEYWORDS = ["over", "o"]
     FALSEY_KEYWORDS = ["under", "u"]
 
-@bind_game("Win/Lose", GameTypes.WIN_LOSE, "wl", "winlose")
+@bind_game("Win/Lose", GameTypes.WIN_LOSE, "wl", "winlose",
+    description="""A binary style bet where players wager whether or
+    not some condition that signifies a successful outcome has been met.
+    Payouts are based on the proportion of the player's stake to the 
+    winning pool.""")
 class WinLoseBet(BinaryBet):
     TRUTHY_KEYWORDS = ["win", "w"]
     FALSEY_KEYWORDS = ["lose", "l"]
 
-@bind_game("Yes/No", GameTypes.YES_NO, "yn", "yesno")
+@bind_game("Yes/No", GameTypes.YES_NO, "yn", "yesno",
+    description="""A binary style bet where players wager whether or
+    not the outcome will be in the affirmative or in the negative. 
+    Payouts are based on the proportion of the player's stake to
+    the winning pool.""")
 class WinLoseBet(BinaryBet):
     TRUTHY_KEYWORDS = ["yes", "y"]
     FALSEY_KEYWORDS = ["no", "n"]
 
-@bind_game("Closest Wins", GameTypes.CLOSEST_WINS, "cw", "closestwins")
+@bind_game("Closest Wins", GameTypes.CLOSEST_WINS, "cw", "closestwins",
+    description="""A bet in which players predict the outcome of a
+    numerical value. The wager, or prediction, that has the greatest
+    proximity to the outcome is considered the winner. In the case of
+    multiple winners, payouts are based on the proportion of the player's
+    stake to the winners' stake pool.""")
 class ClosestWinsBet(Bet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

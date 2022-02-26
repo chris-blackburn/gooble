@@ -8,7 +8,7 @@ from discord.ext import commands
 from . import DEFAULT_PREFIX, DEFAULT_COLOR
 
 from .util import parser, option, ActionStatement
-from .bet import Bet, BetException
+from .bet import Bet, BetException, _BETS_BY_TYPE
 from .house import House, HouseException
 from .player import Player
 
@@ -156,6 +156,25 @@ class Gooble(commands.Bot):
 
     def getHouse(self, guild) -> House:
         return self.houses.setdefault(guild.id, House(guild.id))
+
+@Gooble.command()
+@parser(description="Lists all of the available games.")
+async def games(ctx, args):
+    embed = discord.Embed(
+        title="Available Games",
+        description="This bot currently supports the following games:",
+        color=DEFAULT_COLOR
+    )
+
+    for game, _ in _BETS_BY_TYPE.values():
+        embed.add_field(
+            name=game.FRIENDLY_NAME,
+            value=game.FRIENDLY_DESCRIPTION,
+            inline=False
+        )
+
+    await ctx.send(embed=embed)
+
 
 @Gooble.command()
 @parser(description="Start a new bet")
