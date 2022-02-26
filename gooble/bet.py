@@ -1,3 +1,4 @@
+from typing import Iterable, Tuple, Union
 import uuid
 from enum import Enum, auto
 
@@ -37,6 +38,12 @@ class Bet:
 
     def end(self, result):
         raise BetException("Not implemented")
+
+    '''
+    Returns a list of tuples corresponding a player, their stake, and their wager.
+    '''
+    def getStakes(self) -> Iterable[Tuple[Player, int, Union[str, int]]]:
+        raise BetException("Not implemented by the base class.")
 
     @staticmethod
     def sortDeltas(deltas):
@@ -135,20 +142,36 @@ class BinaryBet(Bet):
         self.sortDeltas(deltas)
         return deltas
 
+    def getStakes(self) -> Iterable[Tuple[Player, int, Union[str, int]]]:
+        # Create a list to hold the currently placed stakes.
+        placed_stakes = []
+
+        # Collect the stakes placed for the positive.
+        placed_stakes = placed_stakes + [
+            stake_data + (self.TRUTHY_KEYWORDS[0],) for _, stake_data in self.truthy.items()
+        ]
+
+        # Collect the stakes placed for the negative.
+        placed_stakes = placed_stakes + [
+            stake_data + (self.FALSEY_KEYWORDS[0],) for _, stake_data in self.falsey.items()
+        ]
+
+        return placed_stakes
+
 @bind_game("Over/Under", GameTypes.OVER_UNDER, "ou", "overunder")
 class OverUnderBet(BinaryBet):
-    TRUTHY_KEYWORDS = ["o", "over"]
-    FALSEY_KEYWORDS = ["u", "under"]
+    TRUTHY_KEYWORDS = ["over", "o"]
+    FALSEY_KEYWORDS = ["under", "u"]
 
 @bind_game("Win/Lose", GameTypes.WIN_LOSE, "wl", "winlose")
 class WinLoseBet(BinaryBet):
-    TRUTHY_KEYWORDS = ["w", "win"]
-    FALSEY_KEYWORDS = ["l", "lose"]
+    TRUTHY_KEYWORDS = ["win", "w"]
+    FALSEY_KEYWORDS = ["lose", "l"]
 
 @bind_game("Yes/No", GameTypes.YES_NO, "yn", "yesno")
 class WinLoseBet(BinaryBet):
-    TRUTHY_KEYWORDS = ["y", "yes"]
-    FALSEY_KEYWORDS = ["n", "no"]
+    TRUTHY_KEYWORDS = ["yes", "y"]
+    FALSEY_KEYWORDS = ["no", "n"]
 
 @bind_game("Closest Wins", GameTypes.CLOSEST_WINS, "cw", "closestwins")
 class ClosestWinsBet(Bet):
@@ -214,4 +237,13 @@ class ClosestWinsBet(Bet):
 
         self.sortDeltas(deltas)
         return deltas
+
+    def getStakes(self) -> Iterable[Tuple[Player, int, Union[str, int]]]:
+        # Create a list to hold the currently placed stakes.
+        placed_stakes = self.betters.values()
+
+        # Sort the stakes based on their targets.
+        placed_stakes.sort(key=lambda x: x[2])
+
+        return placed_stakes
 

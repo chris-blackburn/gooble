@@ -120,6 +120,36 @@ async def stat(ctx, args):
     await ctx.send(embed=embed)
 
 @commands.command()
+@parser(description="Display details about the current state of a bet.")
+@option("--bet", "-b",
+        help="The ID of the bet. If not provided, the most recent bet opened is assumed.")
+async def details(ctx, args):
+    logger.info("DETAILS: {}".format(args))
+    self = ctx.bot
+
+    # Get the House for guild in which the command was sent.
+    house = self.getHouse(ctx.guild)
+    # Get the Bet specified in the command.
+    bet = house.getBet(args.bet)
+
+    # Get a list of stakes for the bet.
+    stakes = bet.getStakes()
+
+    embed = discord.Embed(
+        title="",
+        description=bet.statement,
+    )
+
+    # Serialize the stake tuples for use in the embed.
+    serial_stakes = "\n".join([
+        "{0} : {1} on \"{2}\"".format(player.name, stake, wager)
+            for player, stake, wager in stakes
+    ])
+
+    embed.add_field(name="Stakes", value=serial_stakes or "No Stakes!")
+    await ctx.send(embed=embed)
+
+@commands.command()
 @parser(description="End a gamble")
 @option("result", help="The result of the bet")
 @option("--bet", "-b",
@@ -200,6 +230,7 @@ class Gooble(commands.Bot):
             self.add_command(place)
             self.add_command(stat)
             self.add_command(payout)
+            self.add_command(details)
             logger.debug("Bot initialized")
 
     async def close(self, *args, **kwargs):
@@ -224,5 +255,5 @@ class Gooble(commands.Bot):
 
         logger.debug("State saved")
 
-    def getHouse(self, guild):
+    def getHouse(self, guild) -> House:
         return self.houses.setdefault(guild.id, House(guild.id))
