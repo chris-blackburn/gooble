@@ -3,13 +3,12 @@ import discord
 from .player import Player
 from .bet import Bet
 
+DEFAULT_STARTING_AMOUNT = 1000
+
 class HouseException(Exception):
     pass
 
 class House:
-    """
-    Container
-    """
     def __init__(self, guildid):
         self.id = guildid
 
@@ -30,10 +29,10 @@ class House:
     def running(self):
         self._running_id = None
 
-    def getPlayer(self, author):
+    def getPlayer(self, author, /, balance=DEFAULT_STARTING_AMOUNT):
         player_name = author.nick if author.nick else author.name
         player = self.players.setdefault(author.id,
-                Player(author.id, player_name))
+                Player(author.id, player_name, balance))
 
         # To keep player nicknames up to date, I just update it here, in the
         # factory since that's how we will always get player classes

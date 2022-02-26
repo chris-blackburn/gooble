@@ -8,7 +8,6 @@ from discord.ext import commands
 from . import DEFAULT_PREFIX, DEFAULT_COLOR
 
 from .util import parser, option
-from .player import Player
 from .bet import Bet, BetException
 from .house import House, HouseException
 
@@ -153,24 +152,77 @@ class Gooble(commands.Bot):
         intents = discord.Intents.default()
         intents.messages = True
 
-        super().__init__(command_prefix=DEFAULT_PREFIX, intents=intents, *args,
-                **kwargs)
+        kwargs.setdefault("command_prefix", DEFAULT_PREFIX)
+        kwargs.setdefault("intents", intents)
+        super().__init__(*args, **kwargs)
 
-        self.add_command(bonk)
-        self.add_command(bet)
-        self.add_command(place)
-        self.add_command(stat)
-        self.add_command(payout)
+        self.houses = {}
 
+        # Continue initialization after we are connected
+        self.listen("on_connect")(self.restoreState)
+
+    async def restoreState(self):
+        logger.debug("Rebuilding internal state")
         with shelve.open(self.DB_NAME) as db:
-            self.houses = db.get("houses", {})
+            housedict = db.get("houses", {})
+
+            # For each guild id we have
+            for houseid, records in housedict.items():
+                try:
+                    guild = await self.fetch_guild(houseid)
+                    if not guild:
+                        continue
+                except Exception as e:
+                    logger.error("Could not fetch guild {}; {}".format(
+                        houseid, e))
+                    continue
+
+                # For each member id we have
+                logger.debug("Found house id {}".format(houseid))
+                self.houses[houseid] = House(houseid)
+                for pid, balance in records:
+                    try:
+                        member = await guild.fetch_member(pid)
+                        if not member:
+                            continue
+                    except Exception as e:
+                        logger.error("Could not fetch member {} from guild {}; {}".format(
+                            pid, houseid, e))
+                        continue
+
+                    logger.debug("Found pid {}, balance={}".format(
+                        pid, balance))
+                    self.houses[houseid].getPlayer(member, balance)
+
+            # Add commands now that internal state has been resolved
+            self.add_command(bonk)
+            self.add_command(bet)
+            self.add_command(place)
+            self.add_command(stat)
+            self.add_command(payout)
+            logger.debug("Bot initialized")
 
     async def close(self, *args, **kwargs):
         await super().close(*args, **kwargs)
 
+        # Save just the players and their balances per house id so we don't get
+        # in trouble later with trying to unpickle classes
+        logger.debug("Saving state to db")
         with shelve.open(self.DB_NAME) as db:
-            db["houses"] = self.houses
+            housedict = {}
+            for house in self.houses.values():
+                logger.debug("Saving house id {}".format(house.id))
+
+                records = []
+                for player in house.players.values():
+                    logger.debug("Saving pid {}, balance={}".format(
+                        player.id, player.balance))
+                    records.append((player.id, player.balance))
+                housedict[house.id] = records
+
+            db["houses"] = housedict
+
+        logger.debug("State saved")
 
     def getHouse(self, guild):
         return self.houses.setdefault(guild.id, House(guild.id))
-

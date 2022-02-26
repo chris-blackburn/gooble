@@ -1,8 +1,8 @@
 class Player:
-    def __init__(self, pid, name, starting=1000):
+    def __init__(self, pid, name, balance):
         self.id = pid
         self.name = name
-        self.balance = starting
+        self.balance = balance
 
     def grant(self, monies):
         self.balance += monies
