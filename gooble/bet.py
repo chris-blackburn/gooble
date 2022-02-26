@@ -11,6 +11,7 @@ class GameTypes(Enum):
     OVER_UNDER      = 0
     WIN_LOSE        = auto()
     CLOSEST_WINS    = auto()
+    YES_NO          = auto()
 
 _BETS_BY_TYPE = {}
 def bind_game(name, gt: GameTypes, *nicks):
@@ -27,17 +28,9 @@ class BetException(Exception):
 
 # TODO: Metaclass
 class Bet:
-    def __init__(self, stmt, /):
+    def __init__(self, stmt):
         self.id = uuid.uuid4()
         self.statement = stmt
-
-        self.locked = False
-
-    def lock(self):
-        self.locked = True
-
-    def unlock(self):
-        self.locked = False
 
     def addPlayer(self, player, wager, stake):
         raise BetException("Not implemented")
@@ -48,7 +41,7 @@ class Bet:
     @staticmethod
     def sortDeltas(deltas):
         # Sort by winnings
-        deltas.sort(lambda delta: delta[1])
+        deltas.sort(key=lambda delta: delta[1])
 
     @staticmethod
     def choices():
@@ -59,31 +52,31 @@ class Bet:
         return choices
 
     @staticmethod
-    def byNickname(gtnick):
+    def newBet(gtnick, *args, **kwargs):
         logger.debug("Finding sublcass for {}".format(gtnick))
 
         for subcls, nicks in _BETS_BY_TYPE.values():
             if gtnick.lower() in [n.lower() for n in nicks]:
-                logger.debug("Found!")
-                return subcls
+                return subcls(*args, **kwargs)
 
-        return None
+        raise BetException(
+                "Invalid game type specified '{}'".format(gtnick))
 
 class BinaryBet(Bet):
     TRUTHY_KEYWORDS = []
     FALSEY_KEYWORDS = []
 
-    @staticmethod
-    def _cast_keyword(_kw: str) -> bool:
+    @classmethod
+    def _cast_keyword(cls, _kw: str) -> bool:
         kw = _kw.lower()
-        VALID_KEYWORDS = TRUTHY_KEYWORDS + FALSEY_KEYWORDS
+        VALID_KEYWORDS = cls.TRUTHY_KEYWORDS + cls.FALSEY_KEYWORDS
 
         if kw not in VALID_KEYWORDS:
             raise BetException(
                     "'{}' is not a valid wager for {}; try {}".format(
-                        _kw, self.FRIENDLY_NAME, VALID_KEYWORDS))
+                        _kw, cls.FRIENDLY_NAME, VALID_KEYWORDS))
 
-        return kw in TRUTHY_KEYWORDS
+        return kw in cls.TRUTHY_KEYWORDS
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -152,6 +145,11 @@ class WinLoseBet(BinaryBet):
     TRUTHY_KEYWORDS = ["w", "win"]
     FALSEY_KEYWORDS = ["l", "lose"]
 
+@bind_game("Yes/No", GameTypes.YES_NO, "yn", "yesno")
+class WinLoseBet(BinaryBet):
+    TRUTHY_KEYWORDS = ["y", "yes"]
+    FALSEY_KEYWORDS = ["n", "no"]
+
 @bind_game("Closest Wins", GameTypes.CLOSEST_WINS, "cw", "closestwins")
 class ClosestWinsBet(Bet):
     def __init__(self, *args, **kwargs):
@@ -159,14 +157,14 @@ class ClosestWinsBet(Bet):
 
         self.betters = {}
 
-    @staticmethod
-    def _validate_input(value: str) -> int:
+    @classmethod
+    def _validate_input(cls, value: str) -> int:
         try:
             return int(value)
         except ValueError:
             raise BetException(
                     "'{}' is not a valid wager for {}; use an integer".format(
-                        value, self.FRIENDLY_NAME))
+                        value, cls.FRIENDLY_NAME))
 
     def addPlayer(self, player, stake, wager: str):
         wager = self._validate_input(wager)

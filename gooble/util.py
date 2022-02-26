@@ -1,14 +1,11 @@
 import argparse
-import shlex
 
 import discord
-from discord.ext import commands
+
+from . import DEFAULT_COLOR
 
 from .logs import getLogger
 logger = getLogger()
-
-DEFAULT_PREFIX = "$"
-DEFAULT_COLOR = 0xffd700
 
 def parser(*deco_args, **deco_kwargs):
     def decorator(function):
