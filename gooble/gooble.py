@@ -283,7 +283,7 @@ async def payout(ctx, args):
     bet, deltas = ctx.house.endBet(args.bet, args.result)
 
     embed = discord.Embed(
-            title="Bet results",
+            title="Bet Results",
             description=bet.statement,
             color=DEFAULT_COLOR
     )
@@ -291,6 +291,8 @@ async def payout(ctx, args):
     value = "\n".join(
         ["{0}, {1:+} ({2})".format(await playerName(ctx, p), d, p.balance) \
                 for p, d in deltas])
-    embed.add_field(name="results", value=value, inline=False)
+    embed.add_field(name="Type", value=bet.FRIENDLY_NAME)
+    embed.add_field(name="Unique ID", value=bet.id)
+    embed.add_field(name="Results", value=value or "No Bets Placed", inline=False)
 
     await ctx.send(embed=embed)
