@@ -48,6 +48,11 @@ def option(*args, **kwargs):
         return function
     return decorator
 
+# Takes all values and concatenates them to a string
+class ActionStatement(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, " ".join(values))
+
 def partition(pred, iterable):
     trues = []
     falses = []

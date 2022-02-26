@@ -29,16 +29,9 @@ class House:
     def running(self):
         self._running_id = None
 
-    def getPlayer(self, author, /, balance=DEFAULT_STARTING_AMOUNT):
-        player_name = author.nick if author.nick else author.name
-        player = self.players.setdefault(author.id,
-                Player(author.id, player_name, balance))
-
-        # To keep player nicknames up to date, I just update it here, in the
-        # factory since that's how we will always get player classes
-        # TODO: this is not foolproof, we need to fetch them at command
-        # execution time
-        player.name = player_name
+    def getPlayer(self, pid, /, balance=DEFAULT_STARTING_AMOUNT):
+        player = self.players.setdefault(pid,
+                Player(pid, balance))
 
         return player
 

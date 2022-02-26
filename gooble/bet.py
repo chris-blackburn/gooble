@@ -98,8 +98,8 @@ class BinaryBet(Bet):
     def _addPlayer(self, player, stake, wager: bool):
 
         # Avoid duplication
-        record = self.truthy.pop(player.name, None)
-        record = self.falsey.pop(player.name, record)
+        record = self.truthy.pop(player.id, None)
+        record = self.falsey.pop(player.id, record)
         if record is not None:
             _, original_stake = record
             player.grant(original_stake)
@@ -112,7 +112,7 @@ class BinaryBet(Bet):
         player.take(stake)
 
         pool = self.truthy if wager else self.falsey
-        pool[player.name] = (player, stake)
+        pool[player.id] = (player, stake)
 
     def end(self, result):
         result = self._cast_keyword(result)
@@ -194,7 +194,7 @@ class ClosestWinsBet(Bet):
         return self._addPlayer(player, stake, wager)
 
     def _addPlayer(self, player, stake, wager: int):
-        record = self.betters.pop(player.name, None)
+        record = self.betters.pop(player.id, None)
         if record is not None:
             _, original_stake, *_ = record
             player.grant(original_stake)
@@ -203,7 +203,7 @@ class ClosestWinsBet(Bet):
             raise BetException("Balance too low; funds returned")
 
         player.take(stake)
-        self.betters[player.name] = (player, stake, wager)
+        self.betters[player.id] = (player, stake, target)
 
     def end(self, result: str):
         result = self._validate_input(result)
