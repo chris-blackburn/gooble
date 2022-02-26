@@ -29,16 +29,6 @@ logger = getLogger()
 #     on a particular outcome)
 # 3. Payouts close bets and distribute the winnings
 
-# TODO:
-# 1. Add a --games flag to bet to list all game types and descriptions
-# 2. Add command to get the status of a bet (and to list active bets)
-# 3. Add ability to get a set of all the bets a players is involved in (probably
-#    just extend the stat command)
-# 4. Add command to reset/cancel a player, house, or bet
-# 5. Make a pot of money in a house such that if there are no winners in a bet,
-#    the lost money has somwhere to go (instead of the void)
-# 6. Automated testing cause we saucy like that
-
 @commands.command()
 async def bonk(ctx):
     await ctx.send("Go to horny jail")
@@ -64,7 +54,7 @@ class ActionStatement(argparse.Action):
         help="What the bet is on")
 @throwsGoobleException
 async def bet(ctx, args):
-    logger.debug("BET: {}".format(args))
+    logger.info("BET: {}".format(args))
 
     self = ctx.bot
 
@@ -88,7 +78,7 @@ async def bet(ctx, args):
         help="ID of the bet to place (defaults to most recent bet)")
 @throwsGoobleException
 async def place(ctx, args):
-    logger.debug("PLACE: {}".format(args))
+    logger.info("PLACE: {}".format(args))
     self = ctx.bot
 
     house = self.getHouse(ctx.guild)
@@ -97,14 +87,14 @@ async def place(ctx, args):
     bet = house.getBet(args.bet)
 
     bet.addPlayer(player, args.stake, args.wager)
-    await ctx.send("{}'s has placed their wager".format(player.name))
+    await ctx.send("{} has placed their wager".format(player.name))
 
 @commands.command()
 @parser(description="List balances of all registered players")
 @option("--me", action="store_true", help="Only list your balance")
 @throwsGoobleException
 async def stat(ctx, args):
-    logger.debug("STAT: {}".format(args))
+    logger.info("STAT: {}".format(args))
     self = ctx.bot
 
     house = self.getHouse(ctx.guild)
@@ -137,7 +127,7 @@ async def stat(ctx, args):
         help="ID of the bet to place (defaults to most recent bet)")
 @throwsGoobleException
 async def payout(ctx, args):
-    logger.debug("PAYOUT: {}".format(args))
+    logger.info("PAYOUT: {}".format(args))
     self = ctx.bot
 
     house = self.getHouse(ctx.guild)
