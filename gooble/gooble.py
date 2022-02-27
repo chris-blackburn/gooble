@@ -315,7 +315,11 @@ async def transfer(ctx, amount: int, recipient: commands.MemberConverter=None):
 
     await ctx.send(embed=embed)
 
-@Gooble.command(help="Displays a leaderboard.")
+@Gooble.command(
+    help="Displays a leaderboard. Available leaderboards are {}".format(
+        ", ".join([ e.name.replace("_", " ") for e in LeaderboardTypes ])
+    )
+)
 async def leaderboard(ctx, *, type: str):
     
     leaderboard_type = LeaderboardTypes[type.upper().replace(" ", "_")]
