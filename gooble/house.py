@@ -50,7 +50,11 @@ class House:
         if not bet:
             return None
 
-        deltas = bet.end(result)
+        deltas, house_take = bet.end(result)
+
+        # If the house had any take, add it to the community pool.
+        self.community_pool += house_take
+
         self.running = None
         return bet, deltas
 

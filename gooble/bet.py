@@ -135,6 +135,11 @@ class BinaryBet(Bet):
             player.add_loss()
             deltas.append((player, -stake))
 
+        # If nobody is on the winning side to receive funds from the losing pool, the house wins
+        # everything (community pool).
+        if len(winners) == 0 and len(losers) > 0:
+            return deltas, lsum
+
         # Distribute to winners
         wsum = sum(map(lambda v: v[1], winners.values()))
         for (player, stake) in winners.values():
@@ -146,7 +151,7 @@ class BinaryBet(Bet):
             deltas.append((player, winnings))
 
         self.sortDeltas(deltas)
-        return deltas
+        return deltas, 0
 
     def getStakes(self) -> Iterable[Tuple[Player, int, Union[str, int]]]:
         # Create a list to hold the currently placed stakes.
