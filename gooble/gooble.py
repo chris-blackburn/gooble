@@ -212,7 +212,7 @@ async def giftall(ctx, args):
         player.grant(int(args.amount))
 
     embed = discord.Embed(
-        title="Payday Is Here! 💰",
+        title="💰 Payday Is Here! 💰",
         description="{} has granted everyone {}! {}".format(
             author, args.amount, choice(CELEBRATORY_MSGS)
         )
