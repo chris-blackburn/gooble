@@ -136,12 +136,12 @@ class Gooble(commands.Bot):
                         logger.debug("Found pid {}, balance={}".format(
                             pid, balance))
                         
-                        # "Get" the players. This will create a new Player instance
-                        # in the House if they don't already exist.
+                        # "Get" the players. This will create a new Player
+                        # instance in the House if they don't already exist.
                         self.houses[houseid].getPlayer(member.id, balance)
                 
-                # If a value for the community pool is defined in this House definition,
-                # transfer it over.
+                # If a value for the community pool is defined in this House
+                # definition, transfer it over.
                 if "community_pool" in houseDict:
                     self.houses[houseid].community_pool = houseDict["community_pool"]
 
@@ -162,7 +162,8 @@ class Gooble(commands.Bot):
         houses = []
         with shelve.open(self.DB_NAME) as db:
 
-            # For each of the House instances, create a new key in the dictionary.
+            # For each of the House instances, create a new key in the
+            # dictionary.
             for house in self.houses.values():
                 logger.debug("Saving House {}".format(house.id))
 
@@ -330,7 +331,8 @@ async def payout(ctx, result, betid=None):
                 for p, d in deltas])
     embed.add_field(name="Type", value=bet.FRIENDLY_NAME)
     embed.add_field(name="Unique ID", value=bet.id)
-    embed.add_field(name="Results", value=value or "No Bets Placed", inline=False)
+    embed.add_field(name="Results", value=value or "No Bets Placed",
+            inline=False)
 
     await ctx.send(embed=embed)
 
