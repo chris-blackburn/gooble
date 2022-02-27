@@ -60,7 +60,7 @@ class House:
         self.running = bet
         return bet
 
-    def transferFunds(self, sourcePlayer, targetPlayer, amount):
+    def transferFunds(self, sourcePlayer, amount, /, targetPlayer=None):
         # Ensure the player has enough funds for this donation.
         if sourcePlayer.balance < amount:
             raise HouseException("Player {} does not have enough funds " + 
@@ -71,8 +71,6 @@ class House:
         # If the target player is NoneType, the donation is for the House ;)
         if targetPlayer is None:
             self.community_pool += amount
-            return None
         else:
             targetPlayer.grant(amount)
-            return targetPlayer
             
