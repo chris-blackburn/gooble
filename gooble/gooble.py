@@ -190,7 +190,7 @@ async def bet(ctx, game, *, statement):
             color=DEFAULT_COLOR
     )
 
-    embed.add_field(name="id", value=str(bet.id))
+    embed.add_field(name="Unique Identifier", value=str(bet.id))
     await ctx.send(embed=embed)
 
 @Gooble.command(help="Place your stake and wager on a bet")
@@ -284,7 +284,7 @@ async def payout(ctx, result, betid=None):
         ["{0}, {1:+} ({2})".format(await ctx.playerName(p), d, p.balance) \
                 for p, d in deltas])
     embed.add_field(name="Type", value=bet.FRIENDLY_NAME)
-    embed.add_field(name="Unique ID", value=bet.id)
+    embed.add_field(name="Unique Identifier", value=bet.id)
     embed.add_field(name="Results", value=value or "No Bets Placed",
             inline=False)
 
