@@ -10,7 +10,7 @@ from . import DEFAULT_PREFIX, DEFAULT_COLOR, CELEBRATORY_MSGS
 
 from .bet import Bet, BetException, _BETS_BY_TYPE
 from .house import House, HouseException
-from .player import Player
+from .player import Player, LeaderboardTypes
 
 from .logs import getLogger
 logger = getLogger()
@@ -361,6 +361,31 @@ async def transfer(ctx, amount: int, recipient: commands.MemberConverter=None):
     embed.add_field(
         name="House Community Pool",
         value=house.community_pool,
+        inline=False
+    )
+
+    await ctx.send(embed=embed)
+
+@Gooble.command(help="Displays a leaderboard.")
+async def leaderboard(ctx, type: str):
+    
+    leaderboard_type = LeaderboardTypes(type.upper())
+    leaderboard_items = ctx.house.getLeaderboard(leaderboard_type)
+
+    embed = discord.Embed(
+        title="{} Leaderboard".format(
+            leaderboard_type.name.replace("_", " ").title()
+        )
+    )
+
+    leaderboard_list = "\n".join(
+        [ "`{:<20} {:>4}`".format(await ctx.playerName(player), value)
+            for player, value in leaderboard_items ]
+    )
+
+    embed.add_field(
+        name="Top Players",
+        value=leaderboard_list,
         inline=False
     )
 

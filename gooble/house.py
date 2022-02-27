@@ -1,6 +1,7 @@
+from typing import Iterable, Tuple
 import discord
 
-from .player import Player
+from .player import LeaderboardTypes, Player
 from .bet import Bet
 
 DEFAULT_STARTING_AMOUNT = 1000
@@ -73,4 +74,27 @@ class House:
             self.community_pool += amount
         else:
             targetPlayer.grant(amount)
+
+    def getLeaderboard(self, type: LeaderboardTypes, limit: int = 10) -> Iterable[Tuple[Player, str]]:
+
+        all_players = list(self.players.values())
+        postfix = ''
+
+        if type == LeaderboardTypes.WINS:
+            ext_method = lambda x: x.wins
+        elif type == LeaderboardTypes.WIN_RATE:
+            ext_method = lambda x: x.win_rate
+            postfix = '%'
+        elif type == LeaderboardTypes.LOSSES:
+            ext_method = lambda x: x.losses
+        elif type == LeaderboardTypes.LOSS_RATE:
+            ext_method = lambda x: x.loss_rate
+            postfix = '%'
+        elif type == LeaderboardTypes.MONEY:
+            ext_method = lambda x: x.balance
+
+        all_players.sort(key=ext_method)
+        all_players = all_players[0:limit - 1]
+
+        return [ (player, str(ext_method(player)) + postfix) for player in all_players ]
             
