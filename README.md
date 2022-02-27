@@ -13,17 +13,6 @@ A discord betting bot for the bois
 * General help command for bot usage (probably should move away from argparse
   and just use the default arg parsing discord py has)
 
-* Add more details to the Player class.
-  * Total winnings
-  * Total losses
-  * Total bets won/lost, percentages
-  * Report these on the `$stat --player` embed.
-
-* Leaderboards
-  * Most money
-  * Most wins
-  * Most losses
-
 * Allow random wagers (leave it to chance).
 
 * Add role-based protections for certain commands.
