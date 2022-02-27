@@ -209,10 +209,15 @@ async def stat(ctx, member: commands.MemberConverter = None):
     if member:
         player = ctx.house.getPlayer(member.id)
         embed = discord.Embed(
-                title="Balance for {}".format(ctx.memberName(member)),
-                description=player.balance,
+                title="Player {}".format(ctx.memberName(member)),
                 color=DEFAULT_COLOR
         )
+
+        embed.add_field(name="Balance", value=player.balance, inline=False)
+        embed.add_field(name="Wins", value=player.wins, inline=True)
+        embed.add_field(name="Losses", value=player.losses, inline=True)
+        embed.add_field(name="Win Rate", value=str(player.win_rate) + "%", inline=True)
+
     else:
         embed = discord.Embed(
                 title="Current Balances",
