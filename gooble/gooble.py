@@ -107,51 +107,25 @@ class Gooble(commands.Bot):
             # The database should be a dictionary where each key is a House ID and its
             # corresponding value is a House definition dictionary.
             for houseDict in db.get("houses", []):
-                houseid = houseDict["id"]
-                try:
-                    guild = await self.fetch_guild(houseDict["id"])
-                    if not guild:
-                        continue
-                except Exception as e:
-                    logger.error("Could not fetch guild {}; {}".format(
-                        houseid, e))
-                    continue
 
-                logger.debug("Found house id {}".format(houseid))
-                self.houses[houseid] = House(houseid)
+                import json
+                print(json.dumps(houseDict))
 
-                # If a list of records are included in this House definition, parse
-                # them.
-                if "records" in houseDict:
-                    for pid, balance in houseDict["records"]:
-                        try:
-                            member = await guild.fetch_member(pid)
-                            if not member:
-                                continue
-                        except Exception as e:
-                            logger.error("Could not fetch member {} from guild {}; {}".format(
-                                pid, houseid, e))
-                            continue
+                newHouse = House.fromJSON(houseDict)
+                self.houses[newHouse.id] = newHouse
 
-                        logger.debug("Found pid {}, balance={}".format(
-                            pid, balance))
-                        
-                        # "Get" the players. This will create a new Player
-                        # instance in the House if they don't already exist.
-                        self.houses[houseid].getPlayer(member.id, balance)
-                
-                # If a value for the community pool is defined in this House
-                # definition, transfer it over.
-                if "community_pool" in houseDict:
-                    self.houses[houseid].community_pool = houseDict["community_pool"]
+            # TODO: Do some post processing to check that all the loaded guilds
+            # actually exist. For each guild that does exist, check that all of its
+            # members exist. For any House or Player that doesn't exist, remove it
+            # from the corresponding map.
 
-            self.add_command(bonk)
+        self.add_command(bonk)
 
-            # Add commands now that internal state has been resolved
-            for command in getattr(self, "_gooble_commands", []):
-                logger.debug("Adding command: {}".format(command.name))
-                self.add_command(command)
-            logger.debug("Bot initialized")
+        # Add commands now that internal state has been resolved
+        for command in getattr(self, "_gooble_commands", []):
+            logger.debug("Adding command: {}".format(command.name))
+            self.add_command(command)
+        logger.debug("Bot initialized")
 
     async def close(self, *args, **kwargs):
         await super().close(*args, **kwargs)
@@ -161,34 +135,9 @@ class Gooble(commands.Bot):
         logger.debug("Saving state to db")
         houses = []
         with shelve.open(self.DB_NAME) as db:
-
-            # For each of the House instances, create a new key in the
-            # dictionary.
-            for house in self.houses.values():
-                logger.debug("Saving House {}".format(house.id))
-
-                # Create a new dictionary that represents the internal state of
-                # the House.
-                houseDict = {
-                        "id": house.id,
-                        "records": [],
-                        "community_pool": 0
-                        }
-
-                # Add all of the player balances for the House.
-                for player in house.players.values():
-                    logger.debug("Saving pid {}, balance={}".format(
-                        player.id, player.balance))
-                    houseDict["records"].append((player.id, player.balance))
-
-                # Copy over the value of the community pool.
-                houseDict["community_pool"] = house.community_pool
-
-                # Add a new entry to the database dictionary for this house,
-                # associating the ID with the internal state object (dict).
-                houses.append(houseDict)
-
+            houses = list(map(lambda k: k.json, self.houses.values()))
             db["houses"] = houses
+
         logger.debug("State saved")
 
     def getHouse(self, guild) -> House:
@@ -367,9 +316,9 @@ async def transfer(ctx, amount: int, recipient: commands.MemberConverter=None):
     await ctx.send(embed=embed)
 
 @Gooble.command(help="Displays a leaderboard.")
-async def leaderboard(ctx, type: str):
+async def leaderboard(ctx, *, type: str):
     
-    leaderboard_type = LeaderboardTypes(type.upper())
+    leaderboard_type = LeaderboardTypes[type.upper().replace(" ", "_")]
     leaderboard_items = ctx.house.getLeaderboard(leaderboard_type)
 
     embed = discord.Embed(

@@ -97,4 +97,29 @@ class House:
         all_players = all_players[0:limit - 1]
 
         return [ (player, str(ext_method(player)) + postfix) for player in all_players ]
+
+    @property
+    def json(self):
+        return {
+            "id": self.id,
+            "players": list(map(lambda k: k.json, self.players.values())),
+            "community_pool": self.community_pool
+        }
+
+    @classmethod
+    def fromJSON(cls, value):
+
+        if "id" not in value:
+            raise HouseException("The Player ID must be defined.")
+        
+        self = cls(value["id"])
+
+        self.community_pool = value.get("community_pool", 0)
+
+        if "players" in value:
+            for playerJSON in value["players"]:
+                newPlayer = Player.fromJSON(playerJSON)
+                self.players[newPlayer.id] = newPlayer
+    
+        return self
             

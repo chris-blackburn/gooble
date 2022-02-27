@@ -1,11 +1,14 @@
-from enum import Enum
+from enum import Enum, auto
+
+class PlayerException(Exception):
+    pass
 
 class LeaderboardTypes(Enum):
-    WINS = "WINS"
-    WIN_RATE = "WIN RATE"
-    LOSSES = "LOSSES"
-    LOSS_RATE = "LOSS RATE"
-    MONEY = "MONEY"
+    WINS = 0
+    WIN_RATE = auto()
+    LOSSES = auto()
+    LOSS_RATE = auto()
+    MONEY = auto()
 
 class Player:
     '''
@@ -49,5 +52,29 @@ class Player:
             return 0
 
         return (self.losses / (self.wins + self.losses)) * 100
+
+    @property
+    def json(self):
+        return {
+            "id": self.id,
+            "balance": self.balance,
+            "wins": self.wins,
+            "losses": self.losses
+        }
+
+    @classmethod
+    def fromJSON(cls, value):
+
+        if "id" not in value:
+            raise PlayerException("The Player ID must be defined.")
+        if "balance" not in value:
+            raise PlayerException("A balance for the Player must be defined.")
+        
+        self = cls(value["id"], value["balance"])
+
+        self.wins = value.get("wins", 0)
+        self.losses = value.get("losses", 0)
+    
+        return self
         
 
