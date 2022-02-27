@@ -93,7 +93,7 @@ class House:
         elif type == LeaderboardTypes.MONEY:
             ext_method = lambda x: x.balance
 
-        all_players.sort(key=ext_method)
+        all_players.sort(key=ext_method, reverse=True)
         all_players = all_players[0:limit - 1]
 
         return [ (player, str(ext_method(player)) + postfix) for player in all_players ]
