@@ -132,6 +132,7 @@ class BinaryBet(Bet):
         lsum = 0
         for (player, stake) in losers.values():
             lsum += stake
+            player.add_loss()
             deltas.append((player, -stake))
 
         # Distribute to winners
@@ -140,6 +141,7 @@ class BinaryBet(Bet):
             player.grant(stake)
             winnings = int(lsum * (stake / wsum))
             player.grant(winnings)
+            player.add_win()
 
             deltas.append((player, winnings))
 
@@ -246,6 +248,8 @@ class ClosestWinsBet(Bet):
         lsum = 0
         for player, stake, _ in losers:
             lsum += stake
+            player.add_loss()
+
             deltas.append((player, -stake))
 
         # restore winners funds and distribute
@@ -254,6 +258,8 @@ class ClosestWinsBet(Bet):
             player.grant(stake)
             winnings = int(lsum * (stake / wsum))
             player.grant(winnings)
+            player.add_win()
+
             deltas.append((player, winnings))
 
         self.sortDeltas(deltas)
