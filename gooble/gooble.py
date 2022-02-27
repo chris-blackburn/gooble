@@ -1,11 +1,12 @@
 import asyncio
 import shelve
 import argparse
+from random import choice
 
 import discord
 from discord.ext import commands
 
-from . import DEFAULT_PREFIX, DEFAULT_COLOR
+from . import DEFAULT_PREFIX, DEFAULT_COLOR, CELEBRATORY_MSGS
 
 from .util import parser, option, ActionStatement
 from .bet import Bet, BetException, _BETS_BY_TYPE
@@ -197,6 +198,27 @@ async def games(ctx, args):
 
     await ctx.send(embed=embed)
 
+@Gooble.command()
+@parser(description="Give all players some funds! 💰")
+@option("amount", help="""How much to give everyone. Negative numbers
+        can be used to deduct funds.""")
+async def giftall(ctx, args):
+
+    house = ctx.house
+    author = ctx.author.name
+
+    # For all known players, grant them the specified amount.
+    for player in house.players.values():
+        player.grant(int(args.amount))
+
+    embed = discord.Embed(
+        title="Payday Is Here! 💰",
+        description="{} has granted everyone {}! {}".format(
+            author, args.amount, choice(CELEBRATORY_MSGS)
+        )
+    )
+
+    await ctx.send(embed=embed)
 
 @Gooble.command()
 @parser(description="Start a new bet")
