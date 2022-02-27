@@ -19,6 +19,17 @@ A discord betting bot for the bois
   * Total bets won/lost, percentages
   * Report these on the `$stat --player` embed.
 
+* Leaderboards
+  * Most money
+  * Most wins
+  * Most losses
+
+* Allow random wagers (leave it to chance).
+
+* 
+
 * Add role-based protections for certain commands.
   * `$giftall` should be restricted to House staff.
   * Add middleware to validate permissions before handling the command.
+
+* Allow users to enter a (fixed stake) binary bet using reaction emojis.
