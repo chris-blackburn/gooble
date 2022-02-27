@@ -1,11 +1,12 @@
 import asyncio
 import shelve
 import argparse
+from random import choice
 
 import discord
 from discord.ext import commands
 
-from . import DEFAULT_PREFIX, DEFAULT_COLOR
+from . import DEFAULT_PREFIX, DEFAULT_COLOR, CELEBRATORY_MSGS
 
 from .bet import Bet, BetException, _BETS_BY_TYPE
 from .house import House, HouseException
@@ -209,6 +210,23 @@ async def games(ctx):
 
     await ctx.send(embed=embed)
 
+@Gooble.command(help="Give all players some funds! 💰")
+async def giftall(ctx, amount: int):
+    house = ctx.house
+
+    # For all known players, grant them the specified amount.
+    # TODO: gift to all players in server?
+    for player in house.players.values():
+        player.grant(amount)
+
+    embed = discord.Embed(
+        title="💰 Payday Is Here! 💰",
+        description="{} has granted everyone {}! {}".format(
+            ctx.author_name, amount, choice(CELEBRATORY_MSGS)
+        )
+    )
+
+    await ctx.send(embed=embed)
 
 @Gooble.command(help="Start a new bet")
 async def bet(ctx, game, *, statement):
