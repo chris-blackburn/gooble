@@ -94,10 +94,11 @@ class Gooble(commands.Bot):
     async def restoreState(self):
         logger.debug("Rebuilding internal state")
         with shelve.open(self.DB_NAME) as db:
-            housedict = db.get("houses", {})
 
-            # For each guild id we have
-            for houseid, records in housedict.items():
+            # The database should be a dictionary where each key is a House ID and its
+            # corresponding value is a House definition dictionary.
+            for houseid, houseDict in db.items():
+                houseid = int(houseid)
                 try:
                     guild = await self.fetch_guild(houseid)
                     if not guild:
@@ -107,22 +108,34 @@ class Gooble(commands.Bot):
                         houseid, e))
                     continue
 
-                # For each member id we have
                 logger.debug("Found house id {}".format(houseid))
                 self.houses[houseid] = House(houseid)
-                for pid, balance in records:
-                    try:
-                        member = await guild.fetch_member(pid)
-                        if not member:
-                            continue
-                    except Exception as e:
-                        logger.error("Could not fetch member {} from guild {}; {}".format(
-                            pid, houseid, e))
-                        continue
 
-                    logger.debug("Found pid {}, balance={}".format(
-                        pid, balance))
-                    self.houses[houseid].getPlayer(member.id, balance)
+                # If a list of records are included in this House definition, parse
+                # them.
+                if "records" in houseDict:
+                    for pid, balance in houseDict["records"]:
+                        try:
+                            member = await guild.fetch_member(pid)
+                            if not member:
+                                continue
+                        except Exception as e:
+                            logger.error("Could not fetch member {} from guild {}; {}".format(
+                                pid, houseid, e))
+                            continue
+
+                        logger.debug("Found pid {}, balance={}".format(
+                            pid, balance))
+                        
+                        # "Get" the players. This will create a new Player instance
+                        # in the House if they don't already exist.
+                        self.houses[houseid].getPlayer(member.id, balance)
+                
+                # If a value for the community pool is defined in this House definition,
+                # transfer it over.
+                if "community_pool" in houseDict:
+                    self.houses[houseid].community_pool = houseDict["community_pool"]
+
 
             self.add_command(bonk)
 
@@ -139,18 +152,27 @@ class Gooble(commands.Bot):
         # in trouble later with trying to unpickle classes
         logger.debug("Saving state to db")
         with shelve.open(self.DB_NAME) as db:
-            housedict = {}
-            for house in self.houses.values():
-                logger.debug("Saving house id {}".format(house.id))
 
-                records = []
+            # For each of the House instances, create a new key in the dictionary.
+            for house in self.houses.values():
+                logger.debug("Saving House {}".format(house.id))
+
+                # Create a new dictionary that represents the internal state of
+                # the House.
+                houseDict = { "records": [], "community_pool": 0 }
+
+                # Add all of the player balances for the House.
                 for player in house.players.values():
                     logger.debug("Saving pid {}, balance={}".format(
                         player.id, player.balance))
-                    records.append((player.id, player.balance))
-                housedict[house.id] = records
+                    houseDict["records"].append((player.id, player.balance))
 
-            db["houses"] = housedict
+                # Copy over the value of the community pool.
+                houseDict["community_pool"] = house.community_pool
+
+                # Add a new entry to the database dictionary for this house,
+                # associating the ID with the internal state object (dict).
+                db[str(house.id)] = houseDict
 
         logger.debug("State saved")
 
@@ -237,7 +259,18 @@ async def stat(ctx, args):
         value = "\n".join(
             ["{}, {}".format(await playerName(ctx, p), p.balance) \
                     for p in ctx.house.players.values()])
-        embed.add_field(name="balances", value=value or "No players")
+        embed.add_field(
+            name="Player Balances",
+            value=value or "No players",
+            inline=False
+        )
+
+        # Add the community pool for the House.
+        embed.add_field(
+            name="House Community Pool",
+            value=ctx.house.community_pool,
+            inline=False
+        )
 
     await ctx.send(embed=embed)
 
@@ -294,5 +327,47 @@ async def payout(ctx, args):
     embed.add_field(name="Type", value=bet.FRIENDLY_NAME)
     embed.add_field(name="Unique ID", value=bet.id)
     embed.add_field(name="Results", value=value or "No Bets Placed", inline=False)
+
+    await ctx.send(embed=embed)
+
+@Gooble.command()
+@parser(description="Transfer funds to another player or make a donation to the House.")
+@option("amount", help="The amount to transfer.")
+@option("player", help="""The player to transfer to. If this is omitted,
+    the funds are transferred to the house.""", nargs="?")
+async def transfer(ctx, args):
+
+    # Get the House for guild in which the command was sent.
+    house = ctx.house
+    # Get the player that sent the transfer request.
+    player = house.getPlayer(ctx.author.id)
+
+    # message = ctx.message
+
+    # Assume no target player to start.
+    targetPlayer = None
+
+    # If a target player was specified, attempt to look that Member up.
+    if args.player is not None:
+        print(args.player)
+        targetMember = await commands.MemberConverter().convert(ctx, args.player)
+        targetPlayer = house.getPlayer(targetMember.id)
+
+    recipient = house.transferFunds(player, targetPlayer, int(args.amount))
+    
+    embed = discord.Embed(
+        title="Funds Transferred",
+        description="{} was transferred to {}.".format(
+            args.amount, (await playerName(ctx, recipient)) if recipient else "The House"
+        ),
+        color=DEFAULT_COLOR
+    )
+
+    if recipient == None:
+        embed.add_field(
+            name="House Community Pool",
+            value=house.community_pool,
+            inline=False
+        )
 
     await ctx.send(embed=embed)
