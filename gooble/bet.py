@@ -180,7 +180,7 @@ class ClosestWinsBet(Bet):
             raise BetException("Balance too low; funds returned")
 
         player.take(stake)
-        self.betters[player.id] = (player, stake, target)
+        self.betters[player.id] = (player, stake, wager)
 
     def end(self, result: str):
         result = self._validate_input(result)

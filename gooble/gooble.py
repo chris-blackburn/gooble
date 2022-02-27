@@ -7,7 +7,6 @@ from discord.ext import commands
 
 from . import DEFAULT_PREFIX, DEFAULT_COLOR
 
-from .util import parser, option, ActionStatement
 from .bet import Bet, BetException
 from .house import House, HouseException
 from .player import Player
@@ -67,18 +66,23 @@ class Gooble(commands.Bot):
     @classmethod
     def command(cls, *deco_args, **deco_kwargs):
         def decorator(func):
-            async def wrapper(ctx, *args, **kwargs):
-                setattr(ctx, "author_name", nameFromMember(ctx, ctx.author))
-                setattr(ctx, "house", ctx.bot.getHouse(ctx.guild))
+            async def on_error(ctx, error):
+                e = error.__cause__ if error.__cause__ else error
+                await ctx.send(e)
 
-                try:
-                    return await func(ctx, *args, **kwargs)
-                except (BetException, HouseException) as e:
-                    await ctx.send(e)
+            async def on_call(ctx):
+                logger.info("Request '{}'".format(func.__name__.upper()))
+                house = ctx.bot.getHouse(ctx.guild)
+                player = house.getPlayer(ctx.author.id)
+
+                setattr(ctx, "house", house)
+                setattr(ctx, "player", player)
+                setattr(ctx, "author_name", nameFromMember(ctx, ctx.author))
 
             # Pass to the actual command decorator
-            wrapper.__name__ = func.__name__
-            command = commands.command(*deco_args, **deco_kwargs)(wrapper)
+            command = commands.command(*deco_args, **deco_kwargs)(func)
+            command.before_invoke(on_call)
+            command.error(on_error)
 
             if not hasattr(cls, "_gooble_commands"):
                 setattr(cls, "_gooble_commands", [])
@@ -157,16 +161,11 @@ class Gooble(commands.Bot):
     def getHouse(self, guild):
         return self.houses.setdefault(guild.id, House(guild.id))
 
-@Gooble.command()
-@parser(description="Start a new bet")
-@option("type", choices=Bet.choices())
-@option("statement", nargs="+", action=ActionStatement,
-        help="What the bet is on")
-async def bet(ctx, args):
-    logger.info("BET: {}".format(args))
+@Gooble.command(help="Start a new bet")
+async def bet(ctx, game, *, statement):
     self = ctx.bot
 
-    bet = ctx.house.newBet(args.type, args.statement)
+    bet = ctx.house.newBet(game, statement)
 
     embed = discord.Embed(
             title=bet.FRIENDLY_NAME,
@@ -177,38 +176,26 @@ async def bet(ctx, args):
     embed.add_field(name="id", value=str(bet.id))
     await ctx.send(embed=embed)
 
-@Gooble.command()
-@parser(description="Place a bet")
-@option("stake", type=int, help="The amount you want to bet")
-@option("wager", help="The outcome you expect")
-@option("--bet", "-b",
-        help="ID of the bet to place (defaults to most recent bet)")
-async def place(ctx, args):
-    logger.info("PLACE: {}".format(args))
+@Gooble.command(help="Place your stake and wager on a bet")
+async def place(ctx, stake: int, wager, betid=None):
     self = ctx.bot
 
-    player = ctx.house.getPlayer(ctx.author.id)
+    bet = ctx.house.getBet(betid)
 
-    bet = ctx.house.getBet(args.bet)
-
-    bet.addPlayer(player, args.stake, args.wager)
+    bet.addPlayer(ctx.player, stake, wager)
     await ctx.send("{} has placed their wager".format(ctx.author_name))
 
-@Gooble.command()
-@parser(description="List balances of all registered players")
-@option("--me", action="store_true", help="Only list your balance")
-async def stat(ctx, args):
-    logger.info("STAT: {}".format(args))
+@Gooble.command(help="List balances for all registered players")
+async def stat(ctx, member: commands.MemberConverter = None):
     self = ctx.bot
 
-    if args.me:
-        player = ctx.house.getPlayer(ctx.author.id)
+    if member:
+        player = ctx.house.getPlayer(member.id)
         embed = discord.Embed(
-                title="Balance for {}".format(ctx.author_name),
+                title="Balance for {}".format(nameFromMember(ctx, member)),
                 description=player.balance,
                 color=DEFAULT_COLOR
         )
-
     else:
         embed = discord.Embed(
                 title="Current Balances",
@@ -219,19 +206,13 @@ async def stat(ctx, args):
             ["{}, {}".format(await playerName(ctx, p), p.balance) \
                     for p in ctx.house.players.values()])
         embed.add_field(name="balances", value=value or "No players")
-
     await ctx.send(embed=embed)
 
-@Gooble.command()
-@parser(description="End a gamble")
-@option("result", help="The result of the bet")
-@option("--bet", "-b",
-        help="ID of the bet to place (defaults to most recent bet)")
-async def payout(ctx, args):
-    logger.info("PAYOUT: {}".format(args))
+@Gooble.command(help="End a gamble")
+async def payout(ctx, result, betid=None):
     self = ctx.bot
 
-    bet, deltas = ctx.house.endBet(args.bet, args.result)
+    bet, deltas = ctx.house.endBet(betid, result)
 
     embed = discord.Embed(
             title="Bet results",
