@@ -1,6 +1,8 @@
 from typing import Iterable, Tuple, Union
-import uuid
+from nanoid import generate
 from enum import Enum, auto
+
+from . import BET_ID_CHARSET
 
 from .player import Player
 from .util import partition
@@ -34,7 +36,7 @@ class BetException(Exception):
 # TODO: Metaclass
 class Bet:
     def __init__(self, stmt):
-        self.id = uuid.uuid4()
+        self.id = generate(BET_ID_CHARSET, 5)
         self.statement = stmt
 
     def addPlayer(self, player, wager, stake):
