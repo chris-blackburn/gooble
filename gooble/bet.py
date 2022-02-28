@@ -260,7 +260,7 @@ class ClosestWinsBet(Bet):
             deltas.append((player, -stake))
 
         # restore winners funds and distribute
-        wsum = sum(map(lambda record: record[2], winners))
+        wsum = sum(map(lambda record: record[1], winners))
         for player, stake, _ in winners:
             player.grant(stake)
             winnings = int(lsum * (stake / wsum))
