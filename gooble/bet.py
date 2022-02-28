@@ -270,7 +270,7 @@ class ClosestWinsBet(Bet):
             deltas.append((player, winnings))
 
         self.sortDeltas(deltas)
-        return deltas
+        return deltas, 0
 
     def getStakes(self) -> Iterable[Tuple[Player, int, Union[str, int]]]:
         # Create a list to hold the currently placed stakes.
