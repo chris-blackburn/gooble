@@ -39,7 +39,7 @@ class Bet:
         self.id = generate(BET_ID_CHARSET, 5)
         self.statement = stmt
 
-    def addPlayer(self, player, wager, stake):
+    def addPlayer(self, player, stake, wager):
         raise BetException("Not implemented")
 
     def end(self, result):
