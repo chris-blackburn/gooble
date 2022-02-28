@@ -18,10 +18,10 @@ class House:
 
         self.community_pool = 0
 
-        self.running = None
+        self.running: Bet = None
 
     @property
-    def running(self):
+    def running(self) -> Bet:
         return self.bets.get(self._running_id, None)
 
     @running.setter
