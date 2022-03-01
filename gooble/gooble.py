@@ -246,7 +246,7 @@ async def cancel(ctx, betid=None):
         [ "{} : {}".format(await ctx.playerName(player), stake)
             for player, stake, *_ in deltas ]
     )
-    embed.add_field(name="Refunds", value=value, inline=False)
+    embed.add_field(name="Refunds", value=value or "No Betters", inline=False)
 
     await ctx.send(embed=embed)
 
