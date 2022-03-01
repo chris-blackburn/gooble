@@ -205,10 +205,10 @@ async def giftall(ctx, amount: int):
     await ctx.send(embed=embed)
 
 @Gooble.command(help="Start a new bet")
-async def bet(ctx, game, *, statement):
+async def bet(ctx, game, statement, timeout: int=None):
     self = ctx.bot
 
-    bet = ctx.house.newBet(game, statement)
+    bet = ctx.house.newBet(game, statement, timeout=timeout)
 
     embed = discord.Embed(
             title=bet.FRIENDLY_NAME,
@@ -217,6 +217,10 @@ async def bet(ctx, game, *, statement):
     )
 
     embed.add_field(name="Unique Identifier", value=str(bet.id))
+
+    if bet.timeout is not None:
+        embed.add_field(name="Timeout", value="{} seconds".format(bet.timeout))
+
     await ctx.send(embed=embed)
 
 @Gooble.command(help="Place your stake and wager on a bet")

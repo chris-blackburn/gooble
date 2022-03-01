@@ -1,6 +1,8 @@
+import datetime
 from typing import Iterable, Tuple, Union
-from nanoid import generate
 from enum import Enum, auto
+
+from nanoid import generate
 
 from . import BET_ID_CHARSET
 
@@ -35,9 +37,11 @@ class BetException(Exception):
 
 # TODO: Metaclass
 class Bet:
-    def __init__(self, stmt):
+    def __init__(self, stmt, **kwargs):
         self.id = generate(BET_ID_CHARSET, 5)
         self.statement = stmt
+        self.timeout = kwargs["timeout"]
+        self.created = datetime.datetime.now()
 
     def addPlayer(self, player, stake, wager):
         raise BetException("Not implemented")
@@ -108,6 +112,11 @@ class BinaryBet(Bet):
         self._addPlayer(player, stake, wager)
 
     def _addPlayer(self, player, stake, wager: bool):
+
+        # Don't allow new stakes or updates to stakes if the timeout has expired.
+        if self.timeout is not None and \
+            (datetime.datetime.now() - self.created).total_seconds() > self.timeout:
+            raise BetException("The timeout for this bet has expired.")
 
         # Avoid duplication
         record = self.truthy.pop(player.id, None)
@@ -243,6 +252,11 @@ class ClosestWinsBet(Bet):
         return self._addPlayer(player, stake, wager)
 
     def _addPlayer(self, player, stake, wager: int):
+        # Don't allow new stakes or updates to stakes if the timeout has expired.
+        if self.timeout is not None and \
+            (datetime.datetime.now() - self.created).total_seconds() > self.timeout:
+            raise BetException("The timeout for this bet has expired.")
+
         record = self.betters.pop(player.id, None)
         if record is not None:
             _, original_stake, *_ = record

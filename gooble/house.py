@@ -74,8 +74,8 @@ class House:
         self.running = None
         return bet, deltas
 
-    def newBet(self, gtnick, statement):
-        bet = Bet.newBet(gtnick, statement)
+    def newBet(self, gtnick, statement, **kwargs):
+        bet = Bet.newBet(gtnick, statement, **kwargs)
 
         self.bets[bet.id] = bet
         self.running = bet
