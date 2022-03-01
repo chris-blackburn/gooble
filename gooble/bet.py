@@ -40,7 +40,8 @@ class Bet:
     def __init__(self, stmt, **kwargs):
         self.id = generate(BET_ID_CHARSET, 5)
         self.statement = stmt
-        self.timeout = kwargs["timeout"]
+        self.timeout = kwargs.get("timeout", 0)
+        self.min_bet = kwargs.get("min_bet", 0)
         self.created = datetime.datetime.now()
 
     def addPlayer(self, player, stake, wager):
@@ -114,9 +115,14 @@ class BinaryBet(Bet):
     def _addPlayer(self, player, stake, wager: bool):
 
         # Don't allow new stakes or updates to stakes if the timeout has expired.
-        if self.timeout is not None and \
+        if self.timeout > 0 and \
             (datetime.datetime.now() - self.created).total_seconds() > self.timeout:
             raise BetException("The timeout for this bet has expired.")
+
+        # Don't allow stakes that are less than the minimum stake requirement.
+        if self.min_bet > 0 and stake < self.min_bet:
+            raise BetException("The stake must be greater than or " +
+                "equal to the minimum bet ({}).".format(self.min_bet))
 
         # Avoid duplication
         record = self.truthy.pop(player.id, None)
@@ -253,9 +259,14 @@ class ClosestWinsBet(Bet):
 
     def _addPlayer(self, player, stake, wager: int):
         # Don't allow new stakes or updates to stakes if the timeout has expired.
-        if self.timeout is not None and \
+        if self.timeout > 0 and \
             (datetime.datetime.now() - self.created).total_seconds() > self.timeout:
             raise BetException("The timeout for this bet has expired.")
+
+        # Don't allow stakes that are less than the minimum stake requirement.
+        if self.min_bet > 0 and stake < self.min_bet:
+            raise BetException("The stake must be greater than or " +
+                "equal to the minimum bet ({}).".format(self.min_bet))
 
         record = self.betters.pop(player.id, None)
         if record is not None:
