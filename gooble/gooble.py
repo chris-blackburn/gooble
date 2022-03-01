@@ -160,6 +160,32 @@ async def games(ctx):
 
     await ctx.send(embed=embed)
 
+@Gooble.command(help="Give a player some funds! 💰")
+async def gift(ctx, recipient: commands.MemberConverter, amount: int):
+    house = ctx.house
+
+    if recipient is None:
+        raise Exception("A recipient was not specified.")
+
+    targetPlayer = house.getPlayer(recipient.id)
+
+    targetPlayer.grant(amount)
+    
+    embed = discord.Embed(
+        title="💰 Payday Is Here! 💰",
+        description="{} was granted {}.".format(
+            await ctx.playerName(targetPlayer), amount),
+        color=DEFAULT_COLOR
+    )
+
+    embed.add_field(
+        name="New Balance",
+        value=targetPlayer.balance,
+        inline=False
+    )
+
+    await ctx.send(embed=embed)
+
 @Gooble.command(help="Give all players some funds! 💰")
 async def giftall(ctx, amount: int):
     house = ctx.house
