@@ -202,6 +202,24 @@ async def place(ctx, stake: int, wager, betid=None):
     bet.addPlayer(ctx.player, stake, wager)
     await ctx.send("{} has placed their wager".format(ctx.author_name))
 
+@Gooble.command(help="Cancels a bet, refunding all stakes placed on the bet.")
+async def cancel(ctx, betid=None):
+
+    bet, deltas = ctx.house.cancelBet(betid)
+
+    embed = discord.Embed(
+        title="Bet Canceled",
+        description="Bet {} has been canceled. All betters have been refunded.".format(bet.id)
+    )
+
+    value = "\n".join(
+        [ "{} : {}".format(await ctx.playerName(player), stake)
+            for player, stake, *_ in deltas ]
+    )
+    embed.add_field(name="Refunds", value=value, inline=False)
+
+    await ctx.send(embed=embed)
+
 @Gooble.command(help="List balances for all registered players")
 async def stat(ctx, member: commands.MemberConverter = None):
     self = ctx.bot

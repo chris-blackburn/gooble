@@ -45,6 +45,22 @@ class House:
 
         return bet
 
+    def cancelBet(self, betid):
+        bet = self.bets.get(betid, self.running)
+        if not bet:
+            raise HouseException("please specify a valid id or start a new bet")
+        
+        deltas = bet.cancel()
+
+        # If the bet is somewhere in the dictionary, remove it.
+        if bet.id in self.bets:
+            self.bets.pop(bet.id, None)
+        # If the bet is the current running bet, clear the running bet.
+        if bet is self.running:
+            self.running = None
+
+        return bet, deltas
+
     def endBet(self, betid, result):
         bet = self.getBet(betid)
         if not bet:

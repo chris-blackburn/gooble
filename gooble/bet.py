@@ -42,6 +42,12 @@ class Bet:
     def addPlayer(self, player, stake, wager):
         raise BetException("Not implemented")
 
+    '''
+    Cancels the current bet and refunds any stakes.
+    '''
+    def cancel(self) -> Iterable[Tuple[Player, int]]:
+        raise BetException("Not implemented in the base class.")
+
     def end(self, result):
         raise BetException("Not implemented")
 
@@ -119,6 +125,19 @@ class BinaryBet(Bet):
 
         pool = self.truthy if wager else self.falsey
         pool[player.id] = (player, stake)
+
+    def cancel(self) -> Iterable[Tuple[Player, int]]:
+        all_players = list(self.truthy.values()) + list(self.falsey.values())
+
+        for player, stake in all_players:
+            # Give the player their money back.
+            player.grant(stake)
+
+            # Remove the player from the registered stakes.
+            self.truthy.pop(player.id, None)
+            self.falsey.pop(player.id, None)
+
+        return all_players
 
     def end(self, result):
         result = self._cast_keyword(result)
@@ -234,6 +253,18 @@ class ClosestWinsBet(Bet):
 
         player.take(stake)
         self.betters[player.id] = (player, stake, wager)
+
+    def cancel(self) -> Iterable[Tuple[Player, int]]:
+        all_players = list(self.betters.values())
+
+        for player, stake, _ in all_players:
+            # Give the player their money back.
+            player.grant(stake)
+
+            # Remove the player from the registered stakes.
+            self.betters.pop(player.id, None)
+
+        return all_players
 
     def end(self, result: str):
         result = self._validate_input(result)
